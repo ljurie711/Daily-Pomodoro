@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="A calm daily Pomodoro timer with ambient noise, reminders and refreshing break ideas." />
+  <meta name="theme-color" content="#1b1d2b" />
+  <title>Daily Pomodoro</title>
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" id="favicon" href="icons/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-mode="focus">
+  <div class="bg-glow" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon.svg" alt="" width="28" height="28" />
+      <span>Daily Pomodoro</span>
+    </div>
+    <div class="topbar-actions">
+      <button id="installBtn" class="chip" hidden>Install app</button>
+      <button id="themeBtn" class="icon-btn" title="Toggle theme" aria-label="Toggle theme">◐</button>
+      <button id="settingsBtn" class="icon-btn" title="Settings" aria-label="Settings">⚙</button>
+    </div>
+  </header>
+
+  <main class="app">
+    <nav class="modes" role="tablist" aria-label="Timer mode">
+      <button role="tab" data-mode="focus" class="mode-tab">Focus</button>
+      <button role="tab" data-mode="short" class="mode-tab">Short break</button>
+      <button role="tab" data-mode="long" class="mode-tab">Long break</button>
+    </nav>
+
+    <section class="timer-card">
+      <div class="ring-wrap">
+        <svg class="ring" viewBox="0 0 220 220" aria-hidden="true">
+          <circle class="ring-track" cx="110" cy="110" r="100" />
+          <circle id="ringProgress" class="ring-progress" cx="110" cy="110" r="100" />
+        </svg>
+        <div class="ring-center">
+          <div id="timeDisplay" class="time" aria-live="polite">25:00</div>
+          <div id="modeLabel" class="mode-label">Focus</div>
+        </div>
+      </div>
+
+      <input id="taskInput" class="task-input" type="text" maxlength="80"
+             placeholder="What are you working on?" aria-label="Current task" />
+
+      <div class="controls">
+        <button id="resetBtn" class="ctrl secondary" title="Reset (R)" aria-label="Reset">↺</button>
+        <button id="startBtn" class="ctrl primary" title="Start / Pause (Space)">Start</button>
+        <button id="skipBtn" class="ctrl secondary" title="Skip (S)" aria-label="Skip">⏭</button>
+      </div>
+
+      <div id="sessionDots" class="dots" aria-label="Sessions until long break"></div>
+    </section>
+
+    <section class="sound-bar">
+      <span class="sound-label">Focus sound</span>
+      <div class="noise-options" role="radiogroup" aria-label="Ambient noise">
+        <button class="noise-btn" data-noise="off">Off</button>
+        <button class="noise-btn" data-noise="white">White</button>
+        <button class="noise-btn" data-noise="brown">Brown</button>
+        <button class="noise-btn" data-noise="rain">Rain</button>
+      </div>
+      <input id="noiseVolumeQuick" type="range" min="0" max="100" aria-label="Noise volume" />
+    </section>
+
+    <section class="stats">
+      <div class="stat"><span id="statToday">0</span><small>pomodoros today</small></div>
+      <div class="stat"><span id="statMinutes">0</span><small>focus minutes today</small></div>
+      <div class="stat"><span id="statStreak">0</span><small>day streak</small></div>
+    </section>
+
+    <section id="notifyHint" class="hint" hidden>
+      <span>Turn on desktop reminders so you'll know when time is up, even when this window is hidden.</span>
+      <button id="enableNotifyBtn" class="chip">Enable notifications</button>
+    </section>
+
+    <p class="shortcuts">Space start/pause · R reset · S skip · N noise on/off</p>
+  </main>
+
+  <!-- End-of-section overlay -->
+  <div id="overlay" class="overlay" hidden role="dialog" aria-modal="true" aria-labelledby="overlayTitle">
+    <div class="overlay-card">
+      <div class="overlay-emoji" id="overlayEmoji">☕</div>
+      <h2 id="overlayTitle">Focus session complete!</h2>
+      <p id="overlaySubtitle" class="overlay-sub">Time for a 5-minute break.</p>
+
+      <div id="breakIdea" class="break-idea">
+        <div class="break-idea-head">
+          <span class="break-icon" id="breakIcon">🧘</span>
+          <h3 id="breakTitle">Stretch</h3>
+        </div>
+        <p id="breakText"></p>
+        <div id="breathing" class="breathing" hidden>
+          <div class="breath-circle"><span id="breathPhase">Breathe in</span></div>
+        </div>
+        <button id="anotherIdeaBtn" class="link-btn">Another idea ↻</button>
+      </div>
+
+      <ul class="break-tips">
+        <li>Step away from screens to rest your eyes and mind</li>
+        <li>Move your body and get some blood flowing</li>
+        <li>Sip some water</li>
+      </ul>
+
+      <div class="overlay-actions">
+        <button id="overlayStartBtn" class="ctrl primary wide">Start break</button>
+        <button id="overlayDismissBtn" class="ctrl secondary wide">Not yet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings drawer -->
+  <aside id="settings" class="settings" hidden aria-label="Settings">
+    <div class="settings-head">
+      <h2>Settings</h2>
+      <button id="closeSettingsBtn" class="icon-btn" aria-label="Close settings">✕</button>
+    </div>
+    <form id="settingsForm" class="settings-body">
+      <fieldset>
+        <legend>Durations (minutes)</legend>
+        <label>Focus <input type="number" name="focus" min="1" max="180" step="1" /></label>
+        <label>Short break <input type="number" name="short" min="1" max="60" step="1" /></label>
+        <label>Long break <input type="number" name="long" min="1" max="90" step="1" /></label>
+        <label>Long break every <input type="number" name="longEvery" min="2" max="12" step="1" /> sessions</label>
+      </fieldset>
+      <fieldset>
+        <legend>Flow</legend>
+        <label class="switch"><input type="checkbox" name="autoStart" /> <span>Auto-start next section</span></label>
+        <label class="switch"><input type="checkbox" name="overlay" /> <span>Show full-screen reminder when time is up</span></label>
+        <label>Daily goal <input type="number" name="dailyGoal" min="1" max="24" step="1" /> pomodoros</label>
+      </fieldset>
+      <fieldset>
+        <legend>Sound</legend>
+        <label>Alert chime
+          <select name="chime">
+            <option value="bell">Soft bell</option>
+            <option value="digital">Digital beep</option>
+            <option value="marimba">Marimba</option>
+            <option value="none">None</option>
+          </select>
+        </label>
+        <label>Chime volume <input type="range" name="chimeVolume" min="0" max="100" /></label>
+        <button type="button" id="testChimeBtn" class="chip">Test chime</button>
+        <label>Ambient noise
+          <select name="noise">
+            <option value="off">Off</option>
+            <option value="white">White noise</option>
+            <option value="brown">Brown noise</option>
+            <option value="rain">Rain</option>
+          </select>
+        </label>
+        <label>Noise volume <input type="range" name="noiseVolume" min="0" max="100" /></label>
+        <label class="switch"><input type="checkbox" name="noiseInBreaks" /> <span>Keep noise playing during breaks</span></label>
+      </fieldset>
+      <fieldset>
+        <legend>Data</legend>
+        <button type="button" id="resetStatsBtn" class="chip danger">Reset today's stats</button>
+        <button type="button" id="restoreDefaultsBtn" class="chip">Restore default settings</button>
+      </fieldset>
+    </form>
+  </aside>
+  <div id="scrim" class="scrim" hidden></div>
+
+  <script src="breaks.js"></script>
+  <script src="audio.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
